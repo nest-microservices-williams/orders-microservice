@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CustomRpcException } from 'src/common/exceptions/rpc.exception';
 
 @Injectable()
 export class OrdersService {
@@ -14,7 +15,17 @@ export class OrdersService {
     return `This action returns all orders`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
+  async findOne(id: string) {
+    const order = await this.prismaService.order.findUnique({ where: { id } });
+
+    if (!order) {
+      throw new CustomRpcException({
+        statusCode: HttpStatus.NOT_FOUND,
+        error: 'Not Found',
+        message: `Order with id: ${id} not found`,
+      });
+    }
+
+    return order;
   }
 }

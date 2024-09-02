@@ -4,6 +4,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CustomRpcException } from 'src/common/exceptions/rpc.exception';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { buildPagination } from 'src/helpers/pagination.helper';
+import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 
 @Injectable()
 export class OrdersService {
@@ -44,5 +45,18 @@ export class OrdersService {
     }
 
     return order;
+  }
+
+  async changeStatus(changeOrderStatusDto: ChangeOrderStatusDto) {
+    const { id, status } = changeOrderStatusDto;
+
+    const order = await this.findOne(id);
+
+    if (order.status === status) return order;
+
+    return this.prismaService.order.update({
+      where: { id },
+      data: { status },
+    });
   }
 }

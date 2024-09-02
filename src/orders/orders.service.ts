@@ -7,7 +7,7 @@ export class OrdersService {
   constructor(private readonly prismaService: PrismaService) {}
 
   create(createOrderDto: CreateOrderDto) {
-    return 'This action adds a new order';
+    return createOrderDto;
   }
 
   findAll() {

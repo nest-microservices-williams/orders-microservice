@@ -1,20 +1,38 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CustomRpcException } from 'src/common/exceptions/rpc.exception';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { buildPagination } from 'src/helpers/pagination.helper';
+import { PRODUCT_SERVICE } from 'src/config/services';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
+import { catchError, firstValueFrom } from 'rxjs';
+import { Product } from './interfaces';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Inject(PRODUCT_SERVICE) private readonly productClient: ClientProxy,
+  ) {}
 
-  create(createOrderDto: CreateOrderDto) {
-    return {
-      service: 'Orders Microservice',
-      createOrderDto,
-    };
+  async create(createOrderDto: CreateOrderDto) {
+    const productsIds = createOrderDto.items.map(
+      (product) => product.productId,
+    );
+
+    const productsObservable = this.productClient
+      .send({ cmd: 'validate_products' }, productsIds)
+      .pipe(
+        catchError((error) => {
+          throw new CustomRpcException(error);
+        }),
+      );
+
+    const products = await firstValueFrom<Product[]>(productsObservable);
+
+    return products;
     // return this.prismaService.order.create({ data: createOrderDto });
   }
 

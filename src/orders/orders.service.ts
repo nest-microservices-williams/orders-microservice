@@ -15,7 +15,7 @@ import { Product } from './interfaces';
 export class OrdersService {
   constructor(
     private readonly prismaService: PrismaService,
-    @Inject(NATS_SERVICE) private readonly productClient: ClientProxy,
+    @Inject(NATS_SERVICE) private readonly client: ClientProxy,
   ) {}
 
   async create(createOrderDto: CreateOrderDto) {
@@ -24,7 +24,7 @@ export class OrdersService {
     // 1. Validate products
     const productIds = items.map((product) => product.productId);
 
-    const productsObservable = this.productClient
+    const productsObservable = this.client
       .send({ cmd: 'validate_products' }, productIds)
       .pipe(
         catchError((error) => {
@@ -132,7 +132,7 @@ export class OrdersService {
 
     const productIds = order.OrderItem.map((item) => item.productId);
 
-    const productsObservable = this.productClient
+    const productsObservable = this.client
       .send({ cmd: 'validate_products' }, productIds)
       .pipe(
         catchError((error) => {

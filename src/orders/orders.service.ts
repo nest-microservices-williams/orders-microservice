@@ -109,7 +109,18 @@ export class OrdersService {
   }
 
   async findOne(id: string) {
-    const order = await this.prismaService.order.findUnique({ where: { id } });
+    const order = await this.prismaService.order.findUnique({
+      where: { id },
+      include: {
+        OrderItem: {
+          select: {
+            price: true,
+            quantity: true,
+            productId: true,
+          },
+        },
+      },
+    });
 
     if (!order) {
       throw new CustomRpcException({
@@ -119,7 +130,25 @@ export class OrdersService {
       });
     }
 
-    return order;
+    const productIds = order.OrderItem.map((item) => item.productId);
+
+    const productsObservable = this.productClient
+      .send({ cmd: 'validate_products' }, productIds)
+      .pipe(
+        catchError((error) => {
+          throw new CustomRpcException(error);
+        }),
+      );
+
+    const products = await firstValueFrom<Product[]>(productsObservable);
+
+    return {
+      ...order,
+      OrderItem: order.OrderItem.map((item) => ({
+        ...item,
+        name: products.find((product) => product.id === item.productId).name,
+      })),
+    };
   }
 
   async changeStatus(changeOrderStatusDto: ChangeOrderStatusDto) {

@@ -11,7 +11,11 @@ export class OrdersService {
   constructor(private readonly prismaService: PrismaService) {}
 
   create(createOrderDto: CreateOrderDto) {
-    return this.prismaService.order.create({ data: createOrderDto });
+    return {
+      service: 'Orders Microservice',
+      createOrderDto,
+    };
+    // return this.prismaService.order.create({ data: createOrderDto });
   }
 
   async findAll(orderPaginationDto: OrderPaginationDto) {

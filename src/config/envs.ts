@@ -10,6 +10,7 @@ interface EnvVars {
 const envVarsSchema = joi.object<EnvVars>({
   PORT: joi.number().default(3000),
   DATABASE_URL: joi.string().required(),
+  NATS_SERVERS: joi.array().items(joi.string()).required(),
 });
 
 function validateEnv<T>(

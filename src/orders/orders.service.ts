@@ -10,6 +10,7 @@ import { NATS_SERVICE } from 'src/config/services';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 import { Product } from './interfaces';
+import { PaidOrderDto } from './dto';
 
 @Injectable()
 export class OrdersService {
@@ -119,6 +120,7 @@ export class OrdersService {
             productId: true,
           },
         },
+        OrderReceipt: true,
       },
     });
 
@@ -190,5 +192,34 @@ export class OrdersService {
       );
 
     return firstValueFrom(paymentSession);
+  }
+
+  async paidOrder(paidOrderDto: PaidOrderDto) {
+    const { orderId, receiptUrl, stripePaymentId } = paidOrderDto;
+
+    const order = await this.findOne(orderId);
+
+    if (order.paid) {
+      throw new CustomRpcException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        error: 'Bad Request',
+        message: 'Order already paid',
+      });
+    }
+
+    return this.prismaService.order.update({
+      where: { id: orderId },
+      data: {
+        status: 'PAID',
+        paid: true,
+        paidAt: new Date(),
+        stripeChargeId: stripePaymentId,
+        OrderReceipt: {
+          create: {
+            receiptUrl,
+          },
+        },
+      },
+    });
   }
 }

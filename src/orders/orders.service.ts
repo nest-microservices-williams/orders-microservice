@@ -163,4 +163,32 @@ export class OrdersService {
       data: { status },
     });
   }
+
+  async createPaymentSession(
+    order: Awaited<ReturnType<OrdersService['create']>>,
+  ) {
+    const payload = {
+      orderId: order.id,
+      currency: 'usd',
+      items: order.OrderItem.map((item) => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    };
+
+    const paymentSession = this.client
+      .send('create.payment.session', payload)
+      .pipe(
+        catchError((error) => {
+          throw new CustomRpcException({
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            error: 'Internal Server Error',
+            message: error.message,
+          });
+        }),
+      );
+
+    return firstValueFrom(paymentSession);
+  }
 }
